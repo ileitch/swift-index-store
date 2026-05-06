@@ -14,10 +14,14 @@ process.waitUntilExit()
 let data = pipe.fileHandleForReading.readDataToEndOfFile()
 let XcodePath = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .newlines)
 
+let relativeRuntimeLinkerSettings: [LinkerSetting] = [
+    .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path"]),
+]
+
 let indexLinkerSettings: [LinkerSetting] = [
     .unsafeFlags(["-L\(XcodePath)/Toolchains/XcodeDefault.xctoolchain/usr/lib"]),
     .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "\(XcodePath)/Toolchains/XcodeDefault.xctoolchain/usr/lib"]),
-]
+] + relativeRuntimeLinkerSettings
 
 let swiftDemangleLinkerSettings: [LinkerSetting] = [
     .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "\(XcodePath)/Toolchains/XcodeDefault.xctoolchain/usr/lib"]),
@@ -40,7 +44,7 @@ let toolchainLibDir = URL(fileURLWithPath: swiftcBin).resolvingSymlinksInPath()
 
 let indexLinkerSettings: [LinkerSetting] = [
     .unsafeFlags(["-L\(toolchainLibDir)"]),
-    .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "\(toolchainLibDir)"]),
+    .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "$ORIGIN"]),
 ]
 
 let swiftDemangleLinkerSettings: [LinkerSetting] = [
