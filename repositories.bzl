@@ -57,9 +57,9 @@ cc_library(
 def _linux_shared_library_name(repository_ctx, library):
     # The ELF SONAME, rather than the symlink target's basename, is the name
     # requested by the runtime loader. These can differ (e.g. .so.1 vs .so.1.2).
-    readelf = repository_ctx.which("readelf") or repository_ctx.which("llvm-readelf")
+    readelf = repository_ctx.which("readelf")
     if readelf == None:
-        fail("readelf or llvm-readelf is required to locate libIndexStore's SONAME; install binutils or LLVM")
+        fail("readelf is required to locate libIndexStore's SONAME; install binutils")
     result = repository_ctx.execute([readelf, "--dynamic", str(library)], environment = {"LC_ALL": "C"})
     if result.return_code != 0:
         fail("Failed to read libIndexStore's SONAME: %s" % result.stderr)

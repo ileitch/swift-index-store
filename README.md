@@ -91,8 +91,8 @@ deps = [
 ```
 
 On Linux, Bazel module builds locate `libIndexStore.so` through `swiftc` on
-`PATH`. They also require `readelf` (from binutils) or `llvm-readelf` on `PATH`
-to preserve the library's ELF SONAME in Bazel runfiles.
+`PATH`. They also require `readelf` (from GNU binutils) on `PATH` to preserve
+the library's ELF SONAME in Bazel runfiles.
 
 Xcode:
 
