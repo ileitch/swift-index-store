@@ -10,20 +10,43 @@ import tempfile
 import unittest
 
 
+def repository_file(name):
+    if os.environ.get("RUNFILES_DIR") or os.environ.get("RUNFILES_MANIFEST_FILE"):
+        from python.runfiles import runfiles
+
+        return Path(runfiles.Create().Rlocation(f"swift-index-store/{name}"))
+    return Path(__file__).resolve().parents[2] / name
+
+
+# Resolve declared inputs even on hosts that skip the Linux runtime tests.
+REPOSITORIES_BZL = repository_file("repositories.bzl").read_text()
+MODULE_BAZEL = repository_file("MODULE.bazel").read_text()
+BAZEL_VERSION = repository_file(".bazelversion").read_text().strip()
+
+
 @unittest.skipUnless(sys.platform.startswith("linux"), "requires an ELF linker and loader")
 class LinuxIndexStoreTest(unittest.TestCase):
     def test_runtime_library_names(self):
-        source_root = Path(__file__).resolve().parents[2]
         bazel = shutil.which("bazel") or shutil.which("bazelisk")
         self.assertIsNotNone(bazel, "bazel or bazelisk must be on PATH")
         compiler = shlex.split(os.environ.get("CC", "cc"))
         env = os.environ.copy()
-        env.setdefault("USE_BAZEL_VERSION", (source_root / ".bazelversion").read_text().strip())
+        env.setdefault("USE_BAZEL_VERSION", BAZEL_VERSION)
         env.pop("LD_LIBRARY_PATH", None)
         env.pop("LD_PRELOAD", None)
+        # The nested build must not reuse the outer Python test's runfiles.
+        for name in ("RUNFILES_DIR", "RUNFILES_MANIFEST_FILE", "JAVA_RUNFILES", "PYTHON_RUNFILES"):
+            env.pop(name, None)
 
-        with tempfile.TemporaryDirectory(prefix="indexstore-soname-") as temporary:
+        with tempfile.TemporaryDirectory(
+            prefix="indexstore-soname-", dir=os.environ.get("TEST_TMPDIR")
+        ) as temporary:
             root = Path(temporary)
+            source_root = root / "swift-index-store"
+            source_root.mkdir()
+            (source_root / "MODULE.bazel").write_text(MODULE_BAZEL)
+            (source_root / "repositories.bzl").write_text(REPOSITORIES_BZL)
+            (source_root / "BUILD.bazel").touch()
             workspace = root / "workspace"
             workspace.mkdir()
             (workspace / "MODULE.bazel").write_text(
